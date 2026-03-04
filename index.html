@@ -4,29 +4,84 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Flower Shop</title>
+
   <link rel="stylesheet" href="./style.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    /* мини-добавки, чтобы корзина точно выглядела норм */
+    .cartModal{position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; place-items:center; padding:16px; z-index:999;}
+    .cartCard{width:min(720px, 100%); max-height:90vh; overflow:auto; background:#fff; border-radius:18px; padding:14px; border:1px solid #f1d7e6;}
+    .cartTop{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;}
+    .xBtn{border:1px solid #f1d7e6; background:#fff; border-radius:12px; padding:8px 10px; cursor:pointer;}
+    .cartLine{display:flex; gap:10px; align-items:center; border:1px solid #f1d7e6; border-radius:14px; padding:10px; margin-bottom:10px;}
+    .cartThumb{width:56px; height:56px; border-radius:14px; object-fit:cover;}
+    .cartInfo{flex:1;}
+    .cartName{font-weight:900}
+    .cartSmall{font-size:12px; opacity:.7}
+    .qtyRow{display:flex; align-items:center; gap:8px;}
+    .qtyBtn{width:32px; height:32px; border-radius:12px; border:1px solid #f1d7e6; background:#fff; cursor:pointer; font-weight:900;}
+    .totalRow{display:flex; justify-content:space-between; font-weight:900; margin:10px 0;}
+    .formGrid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+    .formGrid input, .formGrid textarea{border:1px solid #f1d7e6; border-radius:14px; padding:10px 12px; outline:none;}
+    .formGrid textarea{grid-column:1/-1; resize:vertical; min-height:70px;}
+    .primaryBtn{width:100%; border:0; border-radius:14px; padding:12px 14px; cursor:pointer; font-weight:900; color:#fff; background:linear-gradient(135deg,#ff4fa3,#ff8cc6);}
+    .muted{font-size:12px; opacity:.7; margin-top:8px;}
+  </style>
 </head>
+
 <body>
   <header class="topbar">
     <div class="brand">
       <div class="logo">🌸</div>
       <div>
         <div class="title">Flower Shop</div>
-        <div class="subtitle">нежно-розовый каталог</div>
+        <div class="subtitle">каталог букетов</div>
       </div>
     </div>
 
-    <button id="cartBtn" class="cartBtn">
-      🛒 Корзина <span id="cartCount">0</span>
+    <button id="cartBtn" class="cartBtn" type="button">
+      🛒 Корзина <span id="cartCount" class="badge">0</span>
     </button>
   </header>
 
-  <div class="wrap">
-    <input id="search" class="search" placeholder="Поиск букета..." />
-    <div id="products" class="grid"></div>
+  <main class="container">
+    <section class="filters">
+      <input id="search" class="search" placeholder="Поиск букета…" />
+    </section>
+
+    <section id="grid" class="grid"></section>
+  </main>
+
+  <!-- Корзина -->
+  <div id="cartModal" class="cartModal">
+    <div class="cartCard">
+      <div class="cartTop">
+        <div style="font-weight:900; font-size:18px;">🛒 Корзина</div>
+        <button id="closeCart" class="xBtn" type="button">✕</button>
+      </div>
+
+      <div id="cartList"></div>
+
+      <div class="totalRow">
+        <span>Итого</span>
+        <span id="totalPrice">0</span>
+      </div>
+
+      <div style="font-weight:900; margin:6px 0 10px;">Оформление</div>
+      <div class="formGrid">
+        <input id="name" placeholder="Имя" />
+        <input id="phone" placeholder="+996..." />
+        <input id="address" placeholder="Адрес доставки" />
+        <input id="time" placeholder="Время (например 18:30)" />
+        <textarea id="comment" placeholder="Комментарий (по желанию)"></textarea>
+      </div>
+
+      <button id="sendOrderBtn" class="primaryBtn" type="button">✅ Отправить заказ</button>
+      <div class="muted">После отправки заказа клиент оплачивает и отправляет чек в чат бота.</div>
+    </div>
   </div>
 
-  <!-- ВАЖНО: подключаем JS ПОСЛЕ блока products -->
   <script src="./app.js"></script>
 </body>
 </html>
