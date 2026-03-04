@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Flower Shop</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-title">flowerman.kg</div>
+      </div>
+
+      <div class="search">
+        <input id="searchInput" placeholder="Поиск..." />
+      </div>
+
+      <nav id="categoryList" class="nav"></nav>
+
+      <div class="cart-box">
+        <div class="cart-line">
+          <span>🛒 Корзина</span>
+          <span id="cartCount" class="pill">0</span>
+        </div>
+        <div class="cart-total">Итого: <b><span id="cartTotal">0</span></b></div>
+        <button id="openCartBtn" class="btn btn-primary">Открыть корзину</button>
+      </div>
+
+      <div class="hint">
+        💗 Нежно. Быстро. Удобно.
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="title">
+          <span id="activeCategoryTitle">8 марта</span>
+        </div>
+      </header>
+
+      <section id="grid" class="grid"></section>
+    </main>
+  </div>
+
+  <!-- CART MODAL -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">🛒 Корзина</div>
+        <button id="closeModalBtn" class="icon-btn">✕</button>
+      </div>
+
+      <div id="cartItems" class="cart-items"></div>
+
+      <div class="checkout">
+        <div class="checkout-title">Оформление</div>
+
+        <div class="form">
+          <label>Имя</label>
+          <input id="nameInput" placeholder="Например: Айвар" />
+
+          <label>Телефон</label>
+          <input id="phoneInput" placeholder="+996..." />
+
+          <label>Адрес</label>
+          <input id="addressInput" placeholder="Город, улица, дом, кв" />
+
+          <label>Время доставки</label>
+          <input id="timeInput" placeholder="Сегодня 18:30 / Завтра 10:00" />
+        </div>
+
+        <div class="checkout-bottom">
+          <div class="checkout-sum">Итого: <b><span id="checkoutTotal">0</span></b></div>
+          <button id="sendOrderBtn" class="btn btn-primary btn-big">Оплатить (QR) →</button>
+        </div>
+
+        <div class="small">
+          После отправки заказа бот пришлёт QR-код оплаты и попросит чек 📸
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
