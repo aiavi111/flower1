@@ -1,61 +1,210 @@
-// ПРОСТОЙ КАТАЛОГ + КОРЗИНА (работает без сервера)
+/* global Telegram */
+const tg = window.Telegram?.WebApp;
 
 const PRODUCTS = [
-  { id: "F001", name: "Нежная роза", price: 1900, img: "https://picsum.photos/seed/rose1/600/600" },
-  { id: "F002", name: "Pink облако", price: 2400, img: "https://picsum.photos/seed/rose2/600/600" },
-  { id: "F003", name: "Весенний микс", price: 2800, img: "https://picsum.photos/seed/rose3/600/600" },
-  { id: "F004", name: "Delicate",   price: 3200, img: "https://picsum.photos/seed/rose4/600/600" },
-  { id: "F005", name: "Lush красный", price: 3500, img: "https://picsum.photos/seed/rose5/600/600" },
-  { id: "F006", name: "Pure розовый", price: 3000, img: "https://picsum.photos/seed/rose6/600/600" },
+  { id:"B101", name:"Pure — Нежный микс", price:1490, img:"https://picsum.photos/seed/B101/800/600" },
+  { id:"B102", name:"Lush — Красный акцент", price:1990, img:"https://picsum.photos/seed/B102/800/600" },
+  { id:"B103", name:"Delicate — Крем & роза", price:2490, img:"https://picsum.photos/seed/B103/800/600" },
+  { id:"B201", name:"8 марта — Хит продаж", price:3490, img:"https://picsum.photos/seed/B201/800/600" },
+  { id:"B202", name:"8 марта — Большой комплимент", price:4990, img:"https://picsum.photos/seed/B202/800/600" },
 ];
 
-const grid = document.getElementById("products");
-const search = document.getElementById("search");
-const cartCount = document.getElementById("cartCount");
+const $ = (id) => document.getElementById(id);
 
-let cart = [];
+const state = {
+  q: "",
+  cart: new Map(), // id -> qty
+};
 
-function render(list) {
-  if (!grid) return;
+function money(x){
+  return new Intl.NumberFormat("ru-RU").format(x) + " сом";
+}
 
+function cartCount(){
+  let c = 0;
+  for (const v of state.cart.values()) c += v;
+  return c;
+}
+
+function cartItems(){
+  const items = [];
+  for (const [id, qty] of state.cart.entries()){
+    const p = PRODUCTS.find(x => x.id === id);
+    if (!p) continue;
+    items.push({ ...p, qty, sum: p.price * qty });
+  }
+  return items;
+}
+
+function cartTotal(){
+  return cartItems().reduce((a,b)=>a+b.sum,0);
+}
+
+function setQty(id, qty){
+  const q = Math.max(0, qty);
+  if (q === 0) state.cart.delete(id);
+  else state.cart.set(id, q);
+  renderCartUI();
+  renderTopCart();
+}
+
+function addToCart(id){
+  const cur = state.cart.get(id) || 0;
+  state.cart.set(id, cur + 1);
+  renderTopCart();
+}
+
+function renderTopCart(){
+  $("cartCount").textContent = String(cartCount());
+}
+
+function filteredProducts(){
+  const q = state.q.trim().toLowerCase();
+  if (!q) return PRODUCTS;
+  return PRODUCTS.filter(p =>
+    (p.name + " " + p.id).toLowerCase().includes(q)
+  );
+}
+
+function renderGrid(){
+  const grid = $("grid");
   grid.innerHTML = "";
-  list.forEach(p => {
+
+  filteredProducts().forEach(p => {
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <img src="${p.img}" alt="">
+      <img class="cardImg" src="${p.img}" alt="${p.name}">
       <div class="cardBody">
-        <div class="name">${p.name}</div>
-        <div class="code">Код: <b>${p.id}</b></div>
-        <div class="row">
-          <div class="price">${p.price} сом</div>
-          <button class="btn" data-id="${p.id}">Добавить</button>
+        <div class="cardTop">
+          <div>
+            <div class="cardName">${p.name} <span style="opacity:.6;font-weight:800">(${p.id})</span></div>
+            <div class="cardCat">Букет</div>
+          </div>
+          <div class="price">${money(p.price)}</div>
+        </div>
+        <div class="actions">
+          <button class="btn" data-add="${p.id}">Добавить</button>
+          <button class="btn" data-open="${p.id}">Купить</button>
         </div>
       </div>
     `;
     grid.appendChild(card);
   });
 
-  document.querySelectorAll(".btn").forEach(btn => {
-    btn.onclick = () => {
-      const id = btn.dataset.id;
-      const item = PRODUCTS.find(x => x.id === id);
-      cart.push(item);
-      cartCount.textContent = String(cart.length);
+  grid.querySelectorAll("[data-add]").forEach(btn=>{
+    btn.onclick = ()=>{
+      addToCart(btn.dataset.add);
+    };
+  });
+
+  grid.querySelectorAll("[data-open]").forEach(btn=>{
+    btn.onclick = ()=>{
+      addToCart(btn.dataset.open);
+      openCart();
+      renderCartUI();
     };
   });
 }
 
-function applySearch() {
-  const q = (search?.value || "").trim().toLowerCase();
-  const filtered = PRODUCTS.filter(p =>
-    p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)
-  );
-  render(filtered);
+/* CART MODAL */
+function openCart(){
+  $("cartModal").style.display = "grid";
+}
+function closeCart(){
+  $("cartModal").style.display = "none";
 }
 
-if (search) {
-  search.addEventListener("input", applySearch);
+function renderCartUI(){
+  const list = $("cartList");
+  const items = cartItems();
+
+  if (!items.length){
+    list.innerHTML = `<div style="opacity:.7">Корзина пустая</div>`;
+  } else {
+    list.innerHTML = "";
+    items.forEach(it => {
+      const row = document.createElement("div");
+      row.className = "cartLine";
+      row.innerHTML = `
+        <img class="cartThumb" src="${it.img}" alt="">
+        <div class="cartInfo">
+          <div class="cartName">${it.name}</div>
+          <div class="cartSmall">${it.id} • ${money(it.price)}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <div class="qtyRow">
+            <button class="qtyBtn" data-minus="${it.id}">−</button>
+            <div style="min-width:20px; text-align:center; font-weight:900;">${it.qty}</div>
+            <button class="qtyBtn" data-plus="${it.id}">+</button>
+          </div>
+          <div style="font-weight:900;">${money(it.sum)}</div>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    list.querySelectorAll("[data-minus]").forEach(b=>{
+      b.onclick = ()=> setQty(b.dataset.minus, (state.cart.get(b.dataset.minus)||0) - 1);
+    });
+    list.querySelectorAll("[data-plus]").forEach(b=>{
+      b.onclick = ()=> setQty(b.dataset.plus, (state.cart.get(b.dataset.plus)||0) + 1);
+    });
+  }
+
+  $("totalPrice").textContent = money(cartTotal());
 }
 
-render(PRODUCTS);
+/* SEND ORDER */
+function sendOrder(){
+  const items = cartItems();
+  if (!items.length){
+    alert("Корзина пустая 🙂");
+    return;
+  }
+
+  const payload = {
+    type: "order",
+    items: items.map(x => ({ id:x.id, name:x.name, qty:x.qty, price:x.price })),
+    total: cartTotal(),
+    customer: {
+      name: $("name").value.trim(),
+      phone: $("phone").value.trim(),
+      address: $("address").value.trim(),
+      time: $("time").value.trim(),
+      comment: $("comment").value.trim(),
+    },
+    created_at: new Date().toISOString()
+  };
+
+  if (tg?.sendData){
+    tg.sendData(JSON.stringify(payload));
+    alert("✅ Заказ отправлен в бот. Теперь оплатите и отправьте чек в чат.");
+    // можно закрыть:
+    // tg.close();
+    closeCart();
+  } else {
+    console.log(payload);
+    alert("Открой это внутри Telegram. Сейчас данные вывел в консоль.");
+  }
+}
+
+/* INIT */
+if (tg){
+  tg.ready();
+  tg.expand();
+}
+
+$("cartBtn").onclick = ()=>{ openCart(); renderCartUI(); };
+$("closeCart").onclick = closeCart;
+$("cartModal").addEventListener("click", (e)=>{ if (e.target.id === "cartModal") closeCart(); });
+
+$("sendOrderBtn").onclick = sendOrder;
+
+$("search").addEventListener("input", (e)=>{
+  state.q = e.target.value;
+  renderGrid();
+});
+
+renderTopCart();
+renderGrid();
