@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Flower Shop</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <header class="topbar">
@@ -16,93 +16,17 @@
       </div>
     </div>
 
-    <button id="cartBtn" class="cartBtn" type="button">
-      🛒 Корзина <span id="cartCount" class="badge">0</span>
+    <button id="cartBtn" class="cartBtn">
+      🛒 Корзина <span id="cartCount">0</span>
     </button>
   </header>
 
-  <main class="container">
-    <section class="filters">
-      <input id="search" class="search" placeholder="Поиск букета…" />
-      <div class="chips" id="chips"></div>
-    </section>
-
-    <section id="grid" class="grid"></section>
-  </main>
-
-  <!-- Cart Drawer -->
-  <div id="drawerOverlay" class="overlay hidden"></div>
-  <aside id="drawer" class="drawer hidden" aria-hidden="true">
-    <div class="drawerHead">
-      <div class="drawerTitle">🛒 Корзина</div>
-      <button id="closeDrawer" class="iconBtn" type="button">✕</button>
-    </div>
-
-    <div id="cartList" class="cartList"></div>
-
-    <div class="totals">
-      <div class="row">
-        <span>Итого</span>
-        <b id="totalPrice">0</b>
-      </div>
-      <button id="checkoutBtn" class="primary" type="button">Оформить заказ</button>
-      <div class="hint">Оплата по QR → пришли чек в бот</div>
-    </div>
-  </aside>
-
-  <!-- Checkout Modal -->
-  <div id="modalOverlay" class="overlay hidden"></div>
-  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
-    <div class="modalHead">
-      <div class="modalTitle">Оформление заказа</div>
-      <button id="closeModal" class="iconBtn" type="button">✕</button>
-    </div>
-
-    <div class="modalBody">
-      <div class="summaryCard">
-        <div class="sumTitle">Ваш заказ</div>
-        <div id="summary" class="summary"></div>
-        <div class="sumTotal">
-          <span>Итого:</span>
-          <b id="summaryTotal">0</b>
-        </div>
-      </div>
-
-      <div class="form">
-        <label>Имя
-          <input id="name" placeholder="Как к вам обращаться" />
-        </label>
-        <label>Телефон
-          <input id="phone" placeholder="+996..." />
-        </label>
-        <label>Адрес доставки
-          <input id="address" placeholder="Город, улица, дом, кв." />
-        </label>
-        <label>Комментарий
-          <textarea id="comment" rows="3" placeholder="Время, открытка, пожелания…"></textarea>
-        </label>
-
-        <div class="payCard">
-          <div class="payTitle">Оплата</div>
-          <div class="payRow">
-            <div class="qrBox">
-              <img id="qrImg" alt="QR" />
-            </div>
-            <div class="payText">
-              <div class="payStrong">Оплати по QR</div>
-              <div class="paySmall">После оплаты отправь чек в этот бот.</div>
-              <div class="paySmall">Мы проверим оплату и сразу оформим доставку.</div>
-            </div>
-          </div>
-        </div>
-
-        <button id="sendOrderBtn" class="primary" type="button">✅ Отправить заказ в бот</button>
-        <div class="tiny">Нажимая кнопку, ты отправляешь данные заказа в Telegram-бота.</div>
-      </div>
-    </div>
+  <div class="wrap">
+    <input id="search" class="search" placeholder="Поиск букета..." />
+    <div id="products" class="grid"></div>
   </div>
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- ВАЖНО: подключаем JS ПОСЛЕ блока products -->
   <script src="./app.js"></script>
 </body>
 </html>
