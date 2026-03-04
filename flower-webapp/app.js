@@ -1,322 +1,257 @@
+/* global Telegram */
 const tg = window.Telegram?.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-}
 
-// ---- Data (пример, можешь менять) ----
-const CATEGORIES = [
-  { id: "march8", title: "8 марта" },
-  { id: "combo", title: "КОМБО" },
-  { id: "ribbons", title: "ленты" },
-  { id: "cards", title: "открытки" },
-  { id: "sweets", title: "сладости" },
-  { id: "toys", title: "игрушки" },
-  { id: "delicate", title: "Delicate (молочная гамма)" },
-  { id: "pure", title: "Pure (розовая гамма)" },
-  { id: "lush", title: "Lush (красно-молочная)" },
-];
+const CATEGORIES = ["Все", "Розовая гамма", "Красно-молочная", "Весенняя палитра", "Нежная классика"];
 
 const PRODUCTS = [
-  // bouquets
-  { id:"B101", cat:"pure", name:"Pure — Нежный микс", price:1490, img:"https://images.unsplash.com/photo-1526045612212-70caf35c14df?auto=format&fit=crop&w=1400&q=80" },
-  { id:"B102", cat:"lush", name:"Lush — Красный акцент", price:1990, img:"https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1400&q=80" },
-  { id:"B103", cat:"delicate", name:"Delicate — Крем & роза", price:2490, img:"https://images.unsplash.com/photo-1468327768560-75b778cbb551?auto=format&fit=crop&w=1400&q=80" },
-  { id:"B201", cat:"march8", name:"8 марта — Хит продаж", price:3490, img:"https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1400&q=80" },
-  { id:"B202", cat:"march8", name:"8 марта — Большой комплимент", price:4990, img:"https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=1400&q=80" },
-
-  // add-ons examples
-  { id:"A001", cat:"cards", name:"Открытка", price:150, img:"https://images.unsplash.com/photo-1519682337058-a94d519337bc?auto=format&fit=crop&w=1400&q=80" },
-  { id:"A002", cat:"ribbons", name:"Лента", price:120, img:"https://images.unsplash.com/photo-1518373714866-3f1478910cc0?auto=format&fit=crop&w=1400&q=80" },
-  { id:"A003", cat:"sweets", name:"Сладости", price:390, img:"https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=1400&q=80" },
-  { id:"A004", cat:"toys", name:"Игрушка", price:890, img:"https://images.unsplash.com/photo-1535572290543-960a8046f5af?auto=format&fit=crop&w=1400&q=80" },
-  { id:"A005", cat:"combo", name:"КОМБО: букет + сладости", price:3990, img:"https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=1400&q=80" },
+  { id:"B001", name:"Pure",  cat:"Розовая гамма", price:2490, img:"https://picsum.photos/seed/pure/800/600" },
+  { id:"B002", name:"Lush",  cat:"Красно-молочная", price:2790, img:"https://picsum.photos/seed/lush/800/600" },
+  { id:"B003", name:"Blooming", cat:"Весенняя палитра", price:2190, img:"https://picsum.photos/seed/bloom/800/600" },
+  { id:"B004", name:"Delicate", cat:"Нежная классика", price:2590, img:"https://picsum.photos/seed/deli/800/600" },
+  { id:"B005", name:"Rose Cloud", cat:"Розовая гамма", price:1990, img:"https://picsum.photos/seed/rosecloud/800/600" },
+  { id:"B006", name:"Milk & Wine", cat:"Красно-молочная", price:2890, img:"https://picsum.photos/seed/milkwine/800/600" },
 ];
 
-// ---- State ----
-let activeCat = CATEGORIES[0].id;
-let query = "";
-const cart = new Map(); // productId -> qty
+const QR_PLACEHOLDER = "https://picsum.photos/seed/qrpay/400/400"; // замени на свою картинку QR
 
-// ---- DOM ----
-const categoryList = document.getElementById("categoryList");
-const grid = document.getElementById("grid");
-const activeCategoryTitle = document.getElementById("activeCategoryTitle");
-const searchInput = document.getElementById("searchInput");
+const $ = (id)=>document.getElementById(id);
 
-const cartCount = document.getElementById("cartCount");
-const cartTotal = document.getElementById("cartTotal");
+const state = {
+  cat: "Все",
+  q: "",
+  cart: new Map(), // id -> qty
+};
 
-const modal = document.getElementById("modal");
-const openCartBtn = document.getElementById("openCartBtn");
-const closeModalBtn = document.getElementById("closeModalBtn");
-const cartItems = document.getElementById("cartItems");
-
-const checkoutTotal = document.getElementById("checkoutTotal");
-const sendOrderBtn = document.getElementById("sendOrderBtn");
-
-const nameInput = document.getElementById("nameInput");
-const phoneInput = document.getElementById("phoneInput");
-const addressInput = document.getElementById("addressInput");
-const timeInput = document.getElementById("timeInput");
-
-// ---- UI helpers ----
-function money(n){ return `${n}`; }
-
-function getProduct(id){ return PRODUCTS.find(p => p.id === id); }
-
-function calcTotal(){
-  let total = 0;
-  for (const [id, qty] of cart.entries()) {
-    const p = getProduct(id);
-    if (p) total += p.price * qty;
-  }
-  return total;
+function money(x){
+  return new Intl.NumberFormat("ru-RU").format(x) + " сом";
 }
 
-function calcCount(){
+function getCartCount(){
   let c = 0;
-  for (const qty of cart.values()) c += qty;
+  for (const v of state.cart.values()) c += v;
   return c;
 }
 
-function setActiveCat(catId){
-  activeCat = catId;
-  const cat = CATEGORIES.find(c => c.id === catId);
-  activeCategoryTitle.textContent = cat ? cat.title : "Каталог";
-  renderCategories();
-  renderGrid();
-}
-
-function addToCart(id){
-  cart.set(id, (cart.get(id) || 0) + 1);
-  renderCartBadges();
-}
-
-function decFromCart(id){
-  const cur = cart.get(id) || 0;
-  if (cur <= 1) cart.delete(id);
-  else cart.set(id, cur - 1);
-  renderCartBadges();
-}
-
-function incFromCart(id){
-  cart.set(id, (cart.get(id) || 0) + 1);
-  renderCartBadges();
-}
-
-function renderCartBadges(){
-  cartCount.textContent = String(calcCount());
-  cartTotal.textContent = money(calcTotal());
-  checkoutTotal.textContent = money(calcTotal());
-  if (tg) tg.MainButton.hide();
-}
-
-// ---- Renders ----
-function renderCategories(){
-  categoryList.innerHTML = "";
-  for (const cat of CATEGORIES) {
-    const btn = document.createElement("button");
-    btn.textContent = cat.title;
-    btn.className = (cat.id === activeCat) ? "active" : "";
-    btn.onclick = () => setActiveCat(cat.id);
-    categoryList.appendChild(btn);
+function getCartItems(){
+  const items = [];
+  for (const [id, qty] of state.cart.entries()){
+    const p = PRODUCTS.find(x=>x.id===id);
+    if (!p) continue;
+    items.push({ ...p, qty, sum: p.price * qty });
   }
+  return items;
+}
+
+function getTotal(){
+  return getCartItems().reduce((a,b)=>a+b.sum,0);
+}
+
+function renderChips(){
+  const chips = $("chips");
+  chips.innerHTML = "";
+  CATEGORIES.forEach(cat=>{
+    const b = document.createElement("button");
+    b.className = "chip" + (state.cat===cat ? " active" : "");
+    b.type = "button";
+    b.textContent = cat;
+    b.onclick = ()=>{ state.cat=cat; renderAll(); };
+    chips.appendChild(b);
+  });
+}
+
+function filteredProducts(){
+  return PRODUCTS.filter(p=>{
+    const okCat = state.cat==="Все" || p.cat===state.cat;
+    const okQ = !state.q || (p.name + " " + p.id + " " + p.cat).toLowerCase().includes(state.q.toLowerCase());
+    return okCat && okQ;
+  });
 }
 
 function renderGrid(){
+  const grid = $("grid");
   grid.innerHTML = "";
-  const list = PRODUCTS.filter(p => {
-    const matchCat = p.cat === activeCat;
-    const matchQuery = !query || p.name.toLowerCase().includes(query.toLowerCase());
-    return matchCat && matchQuery;
-  });
-
-  for (const p of list) {
+  filteredProducts().forEach(p=>{
     const card = document.createElement("div");
     card.className = "card";
-
-    const img = document.createElement("img");
-    img.src = p.img;
-    img.alt = p.name;
-
-    const body = document.createElement("div");
-    body.className = "card-body";
-
-    const title = document.createElement("div");
-    title.className = "card-title";
-    title.textContent = p.name;
-
-    const meta = document.createElement("div");
-    meta.className = "card-meta";
-    meta.innerHTML = `<span>Код: ${p.id}</span><span><b>${money(p.price)}</b></span>`;
-
-    const btnRow = document.createElement("div");
-    btnRow.style.display = "flex";
-    btnRow.style.gap = "10px";
-
-    const add = document.createElement("button");
-    add.className = "btn btn-primary";
-    add.textContent = "➕ В корзину";
-    add.onclick = () => addToCart(p.id);
-
-    const quick = document.createElement("button");
-    quick.className = "btn btn-ghost";
-    quick.textContent = "🛒 Корзина";
-    quick.onclick = () => openCart();
-
-    btnRow.appendChild(add);
-    btnRow.appendChild(quick);
-
-    body.appendChild(title);
-    body.appendChild(meta);
-    body.appendChild(btnRow);
-
-    card.appendChild(img);
-    card.appendChild(body);
-
+    card.innerHTML = `
+      <img class="cardImg" src="${p.img}" alt="${p.name}">
+      <div class="cardBody">
+        <div class="cardTop">
+          <div>
+            <div class="cardName">${p.name} <span style="color:#a99bb3;font-weight:800">(${p.id})</span></div>
+            <div class="cardCat">${p.cat}</div>
+          </div>
+          <div class="price">${money(p.price)}</div>
+        </div>
+        <div class="actions">
+          <button class="btn" data-add="${p.id}">Добавить</button>
+          <button class="btn" data-buy="${p.id}">Купить</button>
+        </div>
+      </div>
+    `;
     grid.appendChild(card);
-  }
+  });
 
-  if (list.length === 0){
-    const empty = document.createElement("div");
-    empty.style.color = "#6b6b75";
-    empty.style.padding = "14px";
-    empty.textContent = "Ничего не найдено 🥲";
-    grid.appendChild(empty);
-  }
+  grid.querySelectorAll("[data-add]").forEach(btn=>{
+    btn.onclick = ()=>{
+      addToCart(btn.getAttribute("data-add"), 1);
+      pulseCart();
+    };
+  });
+
+  grid.querySelectorAll("[data-buy]").forEach(btn=>{
+    btn.onclick = ()=>{
+      addToCart(btn.getAttribute("data-buy"), 1);
+      openDrawer();
+    };
+  });
 }
 
-function renderCartModal(){
-  cartItems.innerHTML = "";
+function addToCart(id, delta){
+  const cur = state.cart.get(id) || 0;
+  const next = Math.max(0, cur + delta);
+  if (next===0) state.cart.delete(id);
+  else state.cart.set(id, next);
+  updateCartUI();
+}
 
-  if (cart.size === 0){
-    const e = document.createElement("div");
-    e.style.color = "#6b6b75";
-    e.textContent = "Корзина пустая. Добавь товары из каталога 💗";
-    cartItems.appendChild(e);
-    checkoutTotal.textContent = "0";
+function updateCartUI(){
+  $("cartCount").textContent = String(getCartCount());
+  $("totalPrice").textContent = money(getTotal());
+  renderCartList();
+  renderSummary();
+}
+
+function renderCartList(){
+  const wrap = $("cartList");
+  const items = getCartItems();
+  wrap.innerHTML = items.length ? "" : `<div style="color:#6a6373">Корзина пустая</div>`;
+  items.forEach(it=>{
+    const el = document.createElement("div");
+    el.className = "cartItem";
+    el.innerHTML = `
+      <img class="cartThumb" src="${it.img}" alt="${it.name}">
+      <div class="cartInfo">
+        <div class="cartName">${it.name} <span style="color:#a99bb3;font-weight:800">(${it.id})</span></div>
+        <div class="cartMeta">${it.cat}</div>
+        <div class="cartRow">
+          <div class="qty">
+            <button class="qtyBtn" data-minus="${it.id}">−</button>
+            <b>${it.qty}</b>
+            <button class="qtyBtn" data-plus="${it.id}">+</button>
+          </div>
+          <div style="font-weight:900">${money(it.sum)}</div>
+        </div>
+      </div>
+    `;
+    wrap.appendChild(el);
+  });
+
+  wrap.querySelectorAll("[data-minus]").forEach(b=>{
+    b.onclick = ()=>addToCart(b.getAttribute("data-minus"), -1);
+  });
+  wrap.querySelectorAll("[data-plus]").forEach(b=>{
+    b.onclick = ()=>addToCart(b.getAttribute("data-plus"), +1);
+  });
+}
+
+function renderSummary(){
+  const sum = $("summary");
+  const items = getCartItems();
+  sum.innerHTML = items.map(i=>`• ${i.name} (${i.id}) × ${i.qty} = <b>${money(i.sum)}</b>`).join("<br>") || "Корзина пустая";
+  $("summaryTotal").textContent = money(getTotal());
+  $("qrImg").src = QR_PLACEHOLDER;
+}
+
+function pulseCart(){
+  const b = $("cartBtn");
+  b.style.transform = "scale(1.03)";
+  setTimeout(()=>b.style.transform="scale(1)",120);
+}
+
+/* Drawer */
+function openDrawer(){
+  $("drawerOverlay").classList.remove("hidden");
+  $("drawer").classList.remove("hidden");
+  $("drawer").setAttribute("aria-hidden","false");
+}
+function closeDrawer(){
+  $("drawerOverlay").classList.add("hidden");
+  $("drawer").classList.add("hidden");
+  $("drawer").setAttribute("aria-hidden","true");
+}
+
+/* Modal */
+function openModal(){
+  if (getCartCount()===0) return;
+  $("modalOverlay").classList.remove("hidden");
+  $("modal").classList.remove("hidden");
+}
+function closeModal(){
+  $("modalOverlay").classList.add("hidden");
+  $("modal").classList.add("hidden");
+}
+
+function initTelegram(){
+  if (!tg) return;
+  tg.expand();
+  tg.setHeaderColor?.("#fff6fb");
+  tg.setBackgroundColor?.("#fff6fb");
+}
+
+function sendOrderToBot(){
+  const items = getCartItems();
+  if (!items.length){
+    alert("Корзина пустая 🙂");
     return;
-  }
-
-  for (const [id, qty] of cart.entries()){
-    const p = getProduct(id);
-    if (!p) continue;
-
-    const row = document.createElement("div");
-    row.className = "cart-item";
-
-    const img = document.createElement("img");
-    img.src = p.img;
-
-    const info = document.createElement("div");
-    info.innerHTML = `<div class="cart-item-title">${p.name}</div>
-                      <div class="cart-item-sub">Код: ${p.id} • ${money(p.price)} / шт</div>`;
-
-    const qtyBox = document.createElement("div");
-    qtyBox.className = "qty";
-
-    const minus = document.createElement("button");
-    minus.textContent = "–";
-    minus.onclick = () => { decFromCart(id); renderCartModal(); };
-
-    const n = document.createElement("div");
-    n.style.fontWeight = "900";
-    n.textContent = String(qty);
-
-    const plus = document.createElement("button");
-    plus.textContent = "+";
-    plus.onclick = () => { incFromCart(id); renderCartModal(); };
-
-    qtyBox.appendChild(minus);
-    qtyBox.appendChild(n);
-    qtyBox.appendChild(plus);
-
-    row.appendChild(img);
-    row.appendChild(info);
-    row.appendChild(qtyBox);
-
-    cartItems.appendChild(row);
-  }
-
-  checkoutTotal.textContent = money(calcTotal());
-}
-
-// ---- Modal ----
-function openCart(){
-  modal.classList.remove("hidden");
-  renderCartBadges();
-  renderCartModal();
-}
-function closeCart(){
-  modal.classList.add("hidden");
-}
-
-// ---- Events ----
-searchInput.addEventListener("input", (e) => {
-  query = e.target.value || "";
-  renderGrid();
-});
-
-openCartBtn.addEventListener("click", openCart);
-closeModalBtn.addEventListener("click", closeCart);
-
-// ---- Send order to bot ----
-function validateCheckout(){
-  if (cart.size === 0) return "Корзина пустая.";
-  const name = nameInput.value.trim();
-  const phone = phoneInput.value.trim();
-  const address = addressInput.value.trim();
-  const t = timeInput.value.trim();
-
-  if (name.length < 2) return "Укажи имя.";
-  if (phone.length < 7) return "Укажи нормальный телефон.";
-  if (address.length < 5) return "Укажи адрес.";
-  if (t.length < 2) return "Укажи время доставки.";
-
-  return null;
-}
-
-sendOrderBtn.addEventListener("click", () => {
-  const err = validateCheckout();
-  if (err){
-    alert(err);
-    return;
-  }
-
-  const items = [];
-  for (const [id, qty] of cart.entries()){
-    const p = getProduct(id);
-    if (!p) continue;
-    items.push({ id, qty, price: p.price, name: p.name });
   }
 
   const payload = {
-    type: "order_v1",
-    shop: "flowerman.kg",
-    currency: "KGS",
+    type: "order",
+    items: items.map(x=>({id:x.id, name:x.name, qty:x.qty, price:x.price})),
+    total: getTotal(),
     customer: {
-      name: nameInput.value.trim(),
-      phone: phoneInput.value.trim(),
-      address: addressInput.value.trim(),
-      delivery_time: timeInput.value.trim(),
+      name: $("name").value.trim(),
+      phone: $("phone").value.trim(),
+      address: $("address").value.trim(),
+      comment: $("comment").value.trim(),
     },
-    items,
-    total: calcTotal(),
+    created_at: new Date().toISOString(),
+    pay: { method:"qr", note:"Оплата по QR, чек в чат" }
   };
 
-  if (!tg){
-    // Для теста в браузере
-    console.log("WEBAPP DATA:", payload);
-    alert("Открой это внутри Telegram, чтобы отправить заказ боту.");
-    return;
+  if (tg?.sendData){
+    tg.sendData(JSON.stringify(payload));
+    alert("✅ Заказ отправлен в бот. Теперь отправь сюда чек (фото/скрин) после оплаты.");
+    // можно закрыть webapp:
+    tg.close();
+  } else {
+    // если открыто не из Telegram — просто покажем JSON
+    console.log(payload);
+    alert("Открой это внутри Telegram WebApp. Сейчас данные вывели в консоль.");
   }
+}
 
-  tg.sendData(JSON.stringify(payload)); // отправка боту
-  tg.close(); // закрыть мини-апп
+/* Events */
+$("cartBtn").onclick = openDrawer;
+$("drawerOverlay").onclick = closeDrawer;
+$("closeDrawer").onclick = closeDrawer;
+$("checkoutBtn").onclick = ()=>{ closeDrawer(); openModal(); };
+$("modalOverlay").onclick = closeModal;
+$("closeModal").onclick = closeModal;
+
+$("sendOrderBtn").onclick = sendOrderToBot;
+
+$("search").addEventListener("input", (e)=>{
+  state.q = e.target.value;
+  renderGrid();
 });
 
-// ---- Init ----
-renderCategories();
-setActiveCat(activeCat);
-renderCartBadges();
+function renderAll(){
+  renderChips();
+  renderGrid();
+  updateCartUI();
+}
+
+initTelegram();
+renderAll();
